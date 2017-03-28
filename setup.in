@@ -23,7 +23,7 @@ SETUP_INFO = dict(
     install_requires = ${project:install_requires},
     extras_require = {
         'gevent_rpc': ['mprpc']
-    }
+    },
     namespace_packages = ${project:namespace_packages},
 
     package_dir = {'': 'src'},
