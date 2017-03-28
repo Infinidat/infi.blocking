@@ -41,7 +41,10 @@ def worker_context(server, tempdir, timeout=3, gevent_friendly=False):
         worker.ensure_stopped()
 
 
-def make_blocking(func, timeout=10, gevent_friendly=False):
+def make_blocking(func, timeout=10, gevent_friendly=None):
+    if gevent_friendly == None:
+        gevent_friendly = can_use_gevent_rpc()
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         with server_context(gevent_friendly=gevent_friendly) as server:
@@ -49,3 +52,11 @@ def make_blocking(func, timeout=10, gevent_friendly=False):
                 with worker_context(server, tempdir, gevent_friendly=gevent_friendly) as worker:
                     return worker.run(func, args, kwargs, timeout=timeout)
     return wrapper
+
+
+def can_use_gevent_rpc():
+    try:
+        from . import gevent_rpc
+    except ImportError:
+        return False
+    return True
