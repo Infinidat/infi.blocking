@@ -122,7 +122,7 @@ class Worker(object):
                           tempdir=self.tempdir, logging_port=self.logging_port)
             fd.write(SCRIPT.format(**kwargs))
         logger.debug("starting worker {}: {} {}".format(self._id, executable, script))
-        self._result = execute_async([executable, script], close_fds=True)
+        self._result = execute_async([executable, script])
 
     def is_running(self):
         return self._result and not self._result.is_finished()
