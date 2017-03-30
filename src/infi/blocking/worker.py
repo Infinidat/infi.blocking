@@ -1,4 +1,5 @@
 import pickle
+import os
 import sys
 import logging
 import types
@@ -20,6 +21,7 @@ server_port = {server_port!r}
 logging_port = {logging_port!r}
 gevent_friendly = {gevent_friendly!r}
 tempdir = {tempdir!r}
+worker_id = {worker_id!r}
 
 from infi.blocking.worker import LoggingHandler
 
@@ -41,9 +43,11 @@ logging.shutdown()
 
 with contextlib.closing(client), contextlib.closing(logging_client):
     filename = os.path.join(tempdir, 'log.txt')
-    logging.root.addHandler(logging.FileHandler(filename))
-    logging.root.addHandler(LoggingHandler(logging_client))
     logging.root.setLevel(logging.DEBUG)
+    logging.root.addHandler(logging.FileHandler(filename))
+    logging.root.addHandler(LoggingHandler(logging_client, worker_id))
+    logging.root.debug("child process for worker %s started with pid %s " % (worker_id, os.getpid()))
+    logging.root.debug("gevent_friendly: %s" % gevent_friendly)
     client.call('ack', child.get_port())
     child.join()
 
@@ -60,7 +64,7 @@ class Worker(object):
         self.tempdir = tempdir
         self.gevent_friendly = gevent_friendly
         self._result = None
-        self._id = str(uuid.uuid1())
+        self._id = os.path.basename(tempdir)
         self.logging_port = self.server.get_port()
         if logging.root.handlers and isinstance(logging.root.handlers[-1], LoggingHandler):
             self.logging_port = logging.root.handlers[-1].get_client().get_port()
@@ -78,12 +82,17 @@ class Worker(object):
             yield child
 
     def call(self, call_method, call_args, timeout=None):
-        logger.debug("worker {} calling {!r} {!r}".format(self._id, call_method, call_args))
+        logger.debug("worker {} calling {!r} {!r} with timeout {}".format(self._id, call_method, call_args, timeout))
         with self.client_context(timeout) as child:
             try:
-                result = pickle.loads(child.call(call_method, *call_args))
+                logger.debug('client connected')
+                response = child.call(call_method, *call_args)
+                result = pickle.loads(response)
             except self.timeout_exceptions:
                 six.reraise(Timeout, Timeout(), sys.exc_info()[2])
+            except:
+                logger.exception("caught unhandled rpc exception")
+                raise
             logger.debug("got {!r}".format(result))
             if result['code'] == 'error':
                 _type, value, tb = result['result']
@@ -119,6 +128,7 @@ class Worker(object):
         with open(script, 'w') as fd:
             kwargs = dict(path=sys_path, server_port=self.server.get_port(),
                           gevent_friendly=self.gevent_friendly,
+                          worker_id=self._id,
                           tempdir=self.tempdir, logging_port=self.logging_port)
             fd.write(SCRIPT.format(**kwargs))
         logger.debug("starting worker {}: {} {}".format(self._id, executable, script))
@@ -159,14 +169,16 @@ class Worker(object):
 
 
 class LoggingHandler(logging.Handler):
-    def __init__(self, client, *args, **kwargs):
+    def __init__(self, client, worker_id, *args, **kwargs):
         self._client = client
+        self._worker_id = worker_id
         super(LoggingHandler, self).__init__(*args, **kwargs)
 
     def get_client(self):
         return self._client
 
     def emit(self, record):
+        record.msg += ' (message from worker {})'.format(self._worker_id)
         if record.exc_info:
             record.exc_info = (record.exc_info[0], record.exc_info[1], tblib.Traceback(record.exc_info[2]))
         try:
