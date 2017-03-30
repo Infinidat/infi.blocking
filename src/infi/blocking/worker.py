@@ -157,7 +157,10 @@ class Worker(object):
 
     def ensure_stopped(self):
         if not self._result.is_finished():
-            self._result.kill()
+            try:
+                self._result.kill()
+            except:
+                logger.error("could not kill {}".format(self._result))
         if self._result.get_stdout():
             logger.debug(self._result.get_stdout())
         if self._result.get_stderr():

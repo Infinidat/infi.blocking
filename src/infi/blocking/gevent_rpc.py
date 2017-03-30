@@ -40,6 +40,13 @@ class Server(Base, rpc.ServerMixin):
         self._client_ack_event = gevent.event.Event()
         self._client_port = None
 
+    def _run(self, *args, **kwargs):
+        try:
+            super(Server, self)._run(*args, **kwargs)
+        except socket.error:
+            pass
+        except:
+            logger.exception("unhandled exception")
 
 class ChildServer(Base, rpc.ChildServerMixin):
     pass
