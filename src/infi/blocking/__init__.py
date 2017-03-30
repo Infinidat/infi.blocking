@@ -1,3 +1,4 @@
+import os
 import functools
 import contextlib
 import logging
@@ -17,7 +18,8 @@ def tempdir_context():
     try:
         yield tempdir
     finally:
-        rmtree(tempdir, ignore_errors=True)
+        if os.environ.get('INFI_BLOCKING_LEAVE_TEMPDIR', '0') != '1':
+            rmtree(tempdir, ignore_errors=True)
 
 
 @contextlib.contextmanager
