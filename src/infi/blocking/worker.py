@@ -50,6 +50,7 @@ with contextlib.closing(client), contextlib.closing(logging_client):
     logging.root.debug("gevent_friendly: %s" % gevent_friendly)
     client.call('ack', child.get_port())
     child.join()
+    logging.shutdown()
 
 """
 
