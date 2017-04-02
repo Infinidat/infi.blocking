@@ -158,7 +158,7 @@ class LoggingHandler(logging.Handler):
     def get_client(self):
         return self._client
 
-    def emit(self, record):
+    def handle(self, record):
         record.msg += ' (message from worker {})'.format(self._worker_id)
         if record.exc_info:
             record.exc_info = (record.exc_info[0], record.exc_info[1], tblib.Traceback(record.exc_info[2]))
