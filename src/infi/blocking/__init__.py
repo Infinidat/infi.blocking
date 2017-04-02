@@ -53,6 +53,7 @@ def worker_context(server, tempdir, timeout=10, gevent_friendly=False):
         raise
     else:
         worker.shutdown()
+        logger.debug("worker {} has shut down gracefully".format(worker.get_id()))
     finally:
         worker.ensure_stopped()
 

@@ -41,6 +41,7 @@ class ServerMixin(object):
         assert self._client_ack_event.is_set()
 
     def ack(self, client_port):
+        logger.debug("server {} got ack".format(self._id))
         self._client_port = client_port
         self._client_ack_event.set()
 

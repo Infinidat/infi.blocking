@@ -23,35 +23,10 @@ gevent_friendly = {gevent_friendly!r}
 tempdir = {tempdir!r}
 worker_id = {worker_id!r}
 
-from infi.blocking.worker import LoggingHandler
 
-if gevent_friendly:
-    from infi.blocking import gevent_rpc as rpc
-else:
-    from infi.blocking import rpc
+from infi.blocking.worker_process import main
 
-child = rpc.ChildServer()
-child.start()
-
-client = rpc.Client(server_port)
-logging_client = rpc.Client(logging_port)
-
-# tornado creates a StreamHandler
-for handler in list(logging.root.handlers):
-    logging.root.removeHandler(handler)
-logging.shutdown()
-
-with contextlib.closing(client), contextlib.closing(logging_client):
-    filename = os.path.join(tempdir, 'log.txt')
-    logging.root.setLevel(logging.DEBUG)
-    logging.root.addHandler(logging.FileHandler(filename))
-    logging.root.addHandler(LoggingHandler(logging_client, worker_id))
-    logging.root.debug("child process for worker %s started with pid %s " % (worker_id, os.getpid()))
-    logging.root.debug("gevent_friendly: %s" % gevent_friendly)
-    client.call('ack', child.get_port())
-    child.join()
-    logging.shutdown()
-
+main(server_port, logging_port, gevent_friendly, tempdir, worker_id)
 """
 
 
@@ -61,24 +36,26 @@ class Timeout(Exception):
 
 class Worker(object):
     def __init__(self, server, tempdir, gevent_friendly):
+        from .worker_process import get_rpc
         self.server = server
         self.tempdir = tempdir
         self.gevent_friendly = gevent_friendly
         self._result = None
         self._id = os.path.basename(tempdir)
         self.logging_port = self.server.get_port()
-        if logging.root.handlers and isinstance(logging.root.handlers[-1], LoggingHandler):
-            self.logging_port = logging.root.handlers[-1].get_client().get_port()
-        if self.gevent_friendly:
-            from .gevent_rpc import Client, timeout_exceptions
-        else:
-            from .rpc import Client, timeout_exceptions
 
-        self.client_class, self.timeout_exceptions = Client, timeout_exceptions
+        for handler in logging.root.handlers:
+            if isinstance(handler, LoggingHandler):
+                self.logging_port = logging.root.handlers[-1].get_client().get_port()
+
+        rpc = get_rpc(gevent_friendly)
+        self.client_class, self.timeout_exceptions = rpc.Client, rpc.timeout_exceptions
 
     @contextlib.contextmanager
     def client_context(self, timeout):
-        child = self.client_class(self.server.get_child_port(), timeout=timeout)
+        server_port = self.server.get_child_port()
+        logger.debug("worker {} attempting to connect to child over port {} with timeout {}".format(self._id, server_port, timeout))
+        child = self.client_class(server_port, timeout=timeout)
         with contextlib.closing(child):
             yield child
 

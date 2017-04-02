@@ -18,20 +18,29 @@ class Base(mprpc.RPCServer):
 
     def start(self):
         self._server.start()
-        logger.debug("server {} started".format(self._id))
+        logger.debug("{} {} started".format(self.__class__.__name__, self._id))
 
     def join(self, timeout=None):
         self._server._stop_event.wait(timeout)
 
     def ensure_stopped(self, timeout=None):
         self._server.stop(timeout)
-        logger.debug("server {} stopped".format(self._id))
+        logger.debug("{} {} stopped".format(self.__class__.__name__, self._id))
 
     def get_port(self):
         return self._server.socket.getsockname()[1]
 
     def get_id(self):
         return self._id
+
+    def _run(self, *args, **kwargs):
+        try:
+            logger.debug("{} {} got args={!r}, kwargs={!r}".format(self.__class__.__name__, self._id, args, kwargs))
+            super(Base, self)._run(*args, **kwargs)
+        except socket.error:
+            pass
+        except:
+            logger.exception("unhandled exception")
 
 
 class Server(Base, rpc.ServerMixin):
@@ -40,13 +49,6 @@ class Server(Base, rpc.ServerMixin):
         self._client_ack_event = gevent.event.Event()
         self._client_port = None
 
-    def _run(self, *args, **kwargs):
-        try:
-            super(Server, self)._run(*args, **kwargs)
-        except socket.error:
-            pass
-        except:
-            logger.exception("unhandled exception")
 
 class ChildServer(Base, rpc.ChildServerMixin):
     pass
