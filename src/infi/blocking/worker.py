@@ -63,7 +63,7 @@ class Worker(object):
         logger.debug("worker {} calling {!r} {!r} with timeout {}".format(self._id, call_method, call_args, timeout))
         with self.client_context(timeout) as child:
             try:
-                logger.debug('client connected')
+                logger.debug('worker {} client connected to server')
                 response = child.call(call_method, *call_args)
                 result = pickle.loads(response)
             except self.timeout_exceptions:
@@ -116,8 +116,12 @@ class Worker(object):
         return self._result and not self._result.is_finished()
 
     def wait(self, timeout=None):
+        from infi.execute import CommandTimeout
         if self._result:
-            self._result.wait(timeout)
+            try:
+                self._result.wait(timeout)
+            except CommandTimeout:
+                raise Timeout()
 
     def shutdown(self, timeout=None):
         if not self.server.get_child_port():
@@ -127,7 +131,7 @@ class Worker(object):
                 child.call('shutdown')
             except self.timeout_exceptions:
                 pass
-        self._result.wait(timeout)
+        self.wait(timeout)
 
     def get_exitcode(self):
         if self._result:

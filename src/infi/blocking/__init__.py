@@ -38,7 +38,7 @@ def server_context(gevent_friendly=False):
 
 @contextlib.contextmanager
 def worker_context(server, tempdir, timeout=10, gevent_friendly=False):
-    from .worker import Worker
+    from .worker import Worker, Timeout
     worker = Worker(server, tempdir, gevent_friendly=gevent_friendly)
     worker.start()
     try:
@@ -49,11 +49,13 @@ def worker_context(server, tempdir, timeout=10, gevent_friendly=False):
         raise
     except:
         logger.debug("worker {} had an exception".format(worker.get_id()))
-        worker.shutdown()
         raise
     else:
-        worker.shutdown()
-        logger.debug("worker {} has shut down gracefully".format(worker.get_id()))
+        try:
+            worker.shutdown(timeout=timeout)
+            logger.debug("worker {} has shut down gracefully".format(worker.get_id()))
+        except Timeout:
+            logger.debug("worker {} timed out during shut down".format(worker.get_id()))
     finally:
         worker.ensure_stopped()
 
