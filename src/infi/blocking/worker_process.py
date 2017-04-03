@@ -44,8 +44,9 @@ def main(server_port, logging_port, gevent_friendly, tempdir, worker_id):
 
             logger.debug("child process for worker %s started with pid %s " % (worker_id, os.getpid()))
             logger.debug("gevent_friendly: %s" % gevent_friendly)
+            logger.debug("sending ack")
             client.call('ack', child.get_port())
-            logger.debug("ack sent")
+            logger.debug("ack sent, waiting shutdown")
 
             child.join()
             logger.debug("shutting down gracefully")

@@ -49,15 +49,20 @@ def worker_context(server, tempdir, timeout=10, gevent_friendly=False):
         raise
     except:
         logger.debug("worker {} had an exception".format(worker.get_id()))
+        shutdown_worker(worker, timeout)
         raise
     else:
-        try:
-            worker.shutdown(timeout=timeout)
-            logger.debug("worker {} has shut down gracefully".format(worker.get_id()))
-        except Timeout:
-            logger.debug("worker {} timed out during shut down".format(worker.get_id()))
+        shutdown_worker(worker, timeout)
     finally:
         worker.ensure_stopped()
+
+
+def shutdown_worker(worker, timeout):
+    try:
+        worker.shutdown(timeout=timeout)
+        logger.debug("worker {} has shut down gracefully".format(worker.get_id()))
+    except Timeout:
+        logger.debug("worker {} timed out during shut down".format(worker.get_id()))
 
 
 @contextlib.contextmanager

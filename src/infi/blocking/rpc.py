@@ -46,10 +46,13 @@ class ServerMixin(object):
         self._client_ack_event.set()
 
     def log(self, log_record):
-        record = pickle.loads(log_record)
-        if record.exc_info:
-            record.exc_info = (record.exc_info[0], record.exc_info[1], tblib.Traceback(record.exc_info[2].as_traceback()))
-        logging.getLogger(record.name).handle(record)
+        try:
+            record = pickle.loads(log_record)
+            if record.exc_info:
+                record.exc_info = (record.exc_info[0], record.exc_info[1], tblib.Traceback(record.exc_info[2].as_traceback()))
+            logging.getLogger(record.name).handle(record)
+        except:
+            pass
 
     def get_child_port(self):
         return self._client_port

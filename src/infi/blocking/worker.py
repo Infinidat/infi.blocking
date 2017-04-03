@@ -63,7 +63,7 @@ class Worker(object):
         logger.debug("worker {} calling {!r} {!r} with timeout {}".format(self._id, call_method, call_args, timeout))
         with self.client_context(timeout) as child:
             try:
-                logger.debug('worker {} client connected to server')
+                logger.debug('worker {} client connected to server'.format(self._id))
                 response = child.call(call_method, *call_args)
                 result = pickle.loads(response)
             except self.timeout_exceptions:
