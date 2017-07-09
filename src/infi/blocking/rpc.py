@@ -5,6 +5,8 @@ import logging
 import msgpackrpc
 import tblib
 import uuid
+import functools
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,31 +67,37 @@ class Server(Base, ServerMixin):
         self._client_port = None
 
 
+def rpc_result(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = dict(code='success', result=func(*args, **kwargs))
+        except:
+            _type, value, _tb = sys.exc_info()
+            exc_info = (_type, value, tblib.Traceback(_tb))
+            result = dict(code='error', result=exc_info)
+        logger.debug("returning {!r} for".format(result))
+        return pickle.dumps(result)
+    return wrapper
+
 class ChildServerMixin(object):
+    @rpc_result
     def run_method(self, instance, method_name, args, kwargs):
         instance = pickle.loads(instance)
         method_name = pickle.loads(method_name)
         args = pickle.loads(args)
         kwargs = pickle.loads(kwargs)
         method = getattr(instance, method_name)
-        return self._call(method, *args, **kwargs)
+        logger.debug("running {!r} {!r} {!r}".format(method, args, kwargs))
+        return method(*args, **kwargs)
 
-    def _call(self, target, *args, **kwargs):
-        logger.debug("running {!r} {!r} {!r}".format(target, args, kwargs))
-        try:
-            result = dict(code='success', result=target(*args, **kwargs))
-        except:
-            _type, value, _tb = sys.exc_info()
-            exc_info = (_type, value, tblib.Traceback(_tb))
-            result = dict(code='error', result=exc_info)
-        logger.debug("returning {!r} for {!r}".format(result, target))
-        return pickle.dumps(result)
-
+    @rpc_result
     def run_func(self, target, args, kwargs):
         target = pickle.loads(target)
         args = pickle.loads(args)
         kwargs = pickle.loads(kwargs)
-        return self._call(target, *args, **kwargs)
+        logger.debug("running {!r} {!r} {!r}".format(target, args, kwargs))
+        return target(*args, **kwargs)
 
     def shutdown(self):
         logger.debug('child server {!r} shutting down'.format(self.get_id()))

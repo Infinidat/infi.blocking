@@ -43,6 +43,7 @@ def worker_context(server, tempdir, timeout=10, gevent_friendly=False):
     worker.start()
     try:
         server.wait_for_worker(timeout)
+        logger.debug("ack received from worker {}, it is ready".format(worker.get_id()))
         yield worker
     except Timeout:
         logger.debug("worker {} timed out, will not shut down properly".format(worker.get_id()))
@@ -72,6 +73,7 @@ def blocking_context(gevent_friendly=None):
     with server_context(gevent_friendly=gevent_friendly) as server:
         with tempdir_context() as tempdir:
             with worker_context(server, tempdir, gevent_friendly=gevent_friendly) as worker:
+                logger.debug("blocking context ready: server-id={} worker-id={}".format(server.get_id(), worker.get_id()))
                 yield server, worker
 
 
