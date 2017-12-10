@@ -68,11 +68,14 @@ class Server(Base, ServerMixin):
 
 
 def rpc_result(func):
+    from infi.traceback import traceback_decorator
+    @traceback_decorator
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             result = dict(code='success', result=func(*args, **kwargs))
         except:
+            logger.exception("Exception in child rpc_result")
             _type, value, _tb = sys.exc_info()
             exc_info = (_type, value, tblib.Traceback(_tb))
             result = dict(code='error', result=exc_info)
