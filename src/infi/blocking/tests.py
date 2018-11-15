@@ -66,7 +66,7 @@ class Mixin(object):
 
     def test_nested(self):
         func = make_blocking(nested, gevent_friendly=self.gevent_friendly)
-        self.assertEquals(func(5, self.gevent_friendly), self.gevent_friendly)
+        self.assertEqual(func(5, self.gevent_friendly), self.gevent_friendly)
 
 
 class TestCase(unittest.TestCase, Mixin):
