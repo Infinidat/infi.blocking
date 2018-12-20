@@ -77,7 +77,7 @@ def blocking_context(gevent_friendly=None):
                 yield server, worker
 
 
-def make_blocking(func, timeout=10, gevent_friendly=None):
+def make_blocking(func, timeout=15, gevent_friendly=None):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         with blocking_context(gevent_friendly=gevent_friendly) as server_and_worker:

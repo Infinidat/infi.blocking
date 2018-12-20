@@ -31,7 +31,7 @@ class Base(object):
         logger.debug("server {} stopped".format(self._id))
 
     def get_port(self):
-        return self._server._listeners[0]._mp_server._sockets.values()[0].getsockname()[1]
+        return list(self._server._listeners[0]._mp_server._sockets.values())[0].getsockname()[1]
 
     def get_id(self):
         return self._id

@@ -89,7 +89,7 @@ class Worker(object):
         assert callable(target)
 
         if isinstance(target, types.MethodType):
-            call_args = (pickle.dumps(target.im_self), pickle.dumps(target.im_func.__name__),
+            call_args = (pickle.dumps(target.__self__), pickle.dumps(target.__func__.__name__),
                          pickle.dumps(args), pickle.dumps(kwargs))
             call_method = 'run_method'
         else:
