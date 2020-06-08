@@ -144,9 +144,9 @@ class Worker(object):
             except:
                 logger.error("could not kill {}".format(self._result))
         if self._result.get_stdout():
-            logger.debug(self._result.get_stdout())
+            logger.debug(self._result.get_stdout().decode())
         if self._result.get_stderr():
-            logger.debug(self._result.get_stderr())
+            logger.debug(self._result.get_stderr().decode())
         logger.debug("worker {} stoppped with exit code {}".format(self._id, self.get_exitcode()))
 
     def get_id(self):
